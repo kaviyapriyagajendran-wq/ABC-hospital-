@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ABC Hospital - Slot Booking</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#f1f7fb;color:#17324d}
+.header{background:#087f8c;color:white;padding:28px 20px;text-align:center}
+.header h1{margin:0;font-size:32px}.header p{margin:8px 0 0}
+.container{max-width:700px;margin:25px auto;padding:0 16px}
+.card{background:white;border-radius:16px;padding:24px;box-shadow:0 5px 20px #00000012;margin-bottom:18px}
+label{display:block;font-weight:bold;margin:14px 0 7px}
+select,input{width:100%;padding:12px;border:1px solid #cbd8df;border-radius:9px;font-size:16px}
+.slots{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px}
+.slot{padding:12px;border:1px solid #087f8c;background:white;color:#087f8c;border-radius:9px;cursor:pointer}
+.slot:hover,.slot.selected{background:#087f8c;color:white}
+.slot.booked{background:#ddd;color:#888;border-color:#ddd;cursor:not-allowed}
+button.confirm{width:100%;margin-top:20px;padding:14px;border:0;border-radius:10px;background:#087f8c;color:white;font-size:17px;font-weight:bold;cursor:pointer}
+.confirmation{display:none;text-align:center}
+.confirmation .number{font-size:42px;font-weight:bold;color:#087f8c}
+.qr{text-align:center}.qr img{width:190px;max-width:100%}
+.small{color:#607585;font-size:14px}
+@media(max-width:500px){.slots{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>🏥 ABC Hospital</h1>
+  <p>Online Doctor Slot Booking</p>
+</div>
+
+<div class="container">
+  <div class="card">
+    <h2>Book Your Appointment</h2>
+
+    <label for="doctor">Select Doctor</label>
+    <select id="doctor">
+      <option>Dr. Priya - General Medicine</option>
+      <option>Dr. Arun - Cardiology</option>
+      <option>Dr. Meena - Pediatrics</option>
+    </select>
+
+    <label for="date">Select Date</label>
+    <input type="date" id="date">
+
+    <label>Available Time Slots</label>
+    <div class="slots" id="slots"></div>
+
+    <label for="name">Patient Name</label>
+    <input id="name" type="text" placeholder="Enter patient name">
+
+    <button class="confirm" onclick="bookSlot()">Confirm Slot</button>
+  </div>
+
+  <div class="card confirmation" id="confirmation">
+    <h2>Appointment Confirmed ✅</h2>
+    <p>Your token / slot number is</p>
+    <div class="number" id="token"></div>
+    <p id="details"></p>
+    <p class="small">Please arrive 10 minutes before your appointment.</p>
+  </div>
+
+  <div class="card qr">
+    <h3>Scan to Open Booking Page</h3>
+    <img src="abc_hospital_qr.png" alt="ABC Hospital QR Code">
+    <p class="small">Use your phone camera to scan the QR code.</p>
+  </div>
+</div>
+
+<script>
+const slots = ["09:00 AM","09:30 AM","10:00 AM","10:30 AM","11:00 AM","11:30 AM",
+               "02:00 PM","02:30 PM","03:00 PM","03:30 PM","04:00 PM","04:30 PM"];
+let selectedSlot = "";
+
+const dateInput = document.getElementById("date");
+dateInput.value = new Date().toISOString().split("T")[0];
+renderSlots();
+
+dateInput.addEventListener("change", renderSlots);
+document.getElementById("doctor").addEventListener("change", renderSlots);
+
+function renderSlots(){
+  const box = document.getElementById("slots");
+  box.innerHTML = "";
+  selectedSlot = "";
+  slots.forEach((time, i) => {
+    const b = document.createElement("button");
+    b.className = "slot";
+    b.textContent = time;
+    // Demo: a couple of slots appear already booked
+    if ((i === 2 || i === 7) && dateInput.value === new Date().toISOString().split("T")[0]) {
+      b.className += " booked";
+      b.disabled = true;
+      b.title = "Already booked";
+    } else {
+      b.onclick = () => {
+        document.querySelectorAll(".slot").forEach(x => x.classList.remove("selected"));
+        b.classList.add("selected");
+        selectedSlot = time;
+      };
+    }
+    box.appendChild(b);
+  });
+}
+
+function bookSlot(){
+  const name = document.getElementById("name").value.trim();
+  const doctor = document.getElementById("doctor").value;
+  const date = dateInput.value;
+
+  if(!name || !selectedSlot || !date){
+    alert("Please enter your name, select a date and choose a time slot.");
+    return;
+  }
+
+  const token = "ABC-" + Math.floor(100 + Math.random() * 900);
+  document.getElementById("token").textContent = token;
+  document.getElementById("details").innerHTML =
+    "<b>" + name + "</b><br>" + doctor + "<br>" +
+    "Date: " + date + "<br>Time: " + selectedSlot;
+
+  document.getElementById("confirmation").style.display = "block";
+  document.getElementById("confirmation").scrollIntoView({behavior:"smooth"});
+}
+</script>
+</body>
+</html>
