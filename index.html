@@ -232,7 +232,9 @@ const snapshot = await get(bookingsRef);
 const previousBookings = snapshot.val() || {};
 const tokenNumber = Object.keys(previousBookings).length + 1;
 const token = String(tokenNumber);
-const waitingMinutes = (tokenNumber - 1) * 5;
+const waitingMinutes =
+  (Number(queueStatus.peopleWaiting) + 1) *
+  Number(queueStatus.averageServiceMinutes || 5);
   const booking = {
     token: token,
     patientName: name,
