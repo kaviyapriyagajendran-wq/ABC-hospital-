@@ -79,7 +79,8 @@ import {
   getDatabase,
   ref,
   push,
-  set
+  set,
+  get
 } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
 
 const firebaseConfig = {
@@ -171,8 +172,12 @@ async function bookSlot() {
     return;
   }
 
-  const token = "ABC-" + Math.floor(100 + Math.random() * 900);
-
+const bookingsRef = ref(db, "bookings/" + currentUser.uid);
+const snapshot = await get(bookingsRef);
+const previousBookings = snapshot.val() || {};
+const tokenNumber = Object.keys(previousBookings).length + 1;
+const token = String(tokenNumber);
+const waitingMinutes = (tokenNumber - 1) * 5;
   const booking = {
     token: token,
     patientName: name,
@@ -204,7 +209,30 @@ async function bookSlot() {
     details.appendChild(document.createTextNode("Date: " + date));
     details.appendChild(document.createElement("br"));
     details.appendChild(document.createTextNode("Time: " + selectedSlot));
+    const message =
+  "Hello " + name + "! Your appointment is booked.\n\n" +
+  "Token number: " + token + "\n" +
+  "Doctor: " + doctor + "\n" +
+  "Date: " + date + "\n" +
+  "Time: " + selectedSlot + "\n" +
+  "Estimated waiting time: " + waitingMinutes + " minutes\n\n" +
+  "Please be available when your turn approaches.";
 
+let whatsappLink = document.getElementById("whatsappLink");
+
+if (!whatsappLink) {
+  whatsappLink = document.createElement("a");
+  whatsappLink.id = "whatsappLink";
+  whatsappLink.textContent = "Send appointment details on WhatsApp";
+  whatsappLink.target = "_blank";
+  whatsappLink.rel = "noopener noreferrer";
+  whatsappLink.style.display = "block";
+  whatsappLink.style.marginTop = "15px";
+  document.getElementById("confirmation").appendChild(whatsappLink);
+}
+
+whatsappLink.href =
+  "https://wa.me/?text=" + encodeURIComponent(message);
     document.getElementById("confirmation").style.display = "block";
     document.getElementById("confirmation").scrollIntoView({
       behavior: "smooth"
