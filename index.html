@@ -169,7 +169,6 @@ async function bookSlot() {
   const phone = document.getElementById("phone").value.trim();
   const doctor = document.getElementById("doctor").value;
   const date = dateInput.value;
-const phone = document.getElementById("phone").value.trim();
 if (!name || !phone || !selectedSlot || !date) {
   alert("Please enter your name and phone number, select a date and choose a time slot.");
   return;
@@ -193,8 +192,9 @@ const waitingMinutes = (tokenNumber - 1) * 5;
     doctor: doctor,
     date: date,
     time: selectedSlot,
-    status: "booked",
-    createdAt: new Date().toISOString()
+   status: "booked",
+waitingMinutes: waitingMinutes,
+createdAt: new Date().toISOString()
   };
 
   try {
