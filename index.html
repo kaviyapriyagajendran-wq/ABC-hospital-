@@ -32,6 +32,15 @@ button.confirm{width:100%;margin-top:20px;padding:14px;border:0;border-radius:10
 </div>
 
 <div class="container">
+  
+  <div class="card">
+    <h2>Live Queue Status</h2>
+    <p>Current token: <strong id="currentToken">--</strong></p>
+    <p>People waiting: <strong id="peopleWaiting">--</strong></p>
+    <p>Average service time: <strong id="averageService">--</strong> minutes</p>
+    <p class="small" id="queueConnection">Connecting to live queue...</p>
+  </div>
+
   <div class="card">
     <h2>Book Your Appointment</h2>
 
@@ -87,7 +96,8 @@ import {
   ref,
   push,
   set,
-  get
+  get,
+  onValue
 } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
 
 const firebaseConfig = {
@@ -104,6 +114,44 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
+
+let queueStatus = {
+  currentToken: 0,
+  peopleWaiting: 0,
+  averageServiceMinutes: 5
+};
+
+onValue(
+  ref(db, "queueStatus"),
+  (snapshot) => {
+    const data = snapshot.val();
+
+    if (!data) {
+      document.getElementById("queueConnection").textContent =
+        "Queue data not available.";
+      return;
+    }
+
+    queueStatus = data;
+
+    document.getElementById("currentToken").textContent =
+      data.currentToken ?? 0;
+
+    document.getElementById("peopleWaiting").textContent =
+      data.peopleWaiting ?? 0;
+
+    document.getElementById("averageService").textContent =
+      data.averageServiceMinutes ?? 5;
+
+    document.getElementById("queueConnection").textContent =
+      "Live queue connected ✓";
+  },
+  (error) => {
+    console.error("Queue listener failed:", error);
+    document.getElementById("queueConnection").textContent =
+      "Unable to load queue status.";
+  }
+);
 
 let currentUser = null;
 
