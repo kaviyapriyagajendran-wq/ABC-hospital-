@@ -50,6 +50,13 @@ button.confirm{width:100%;margin-top:20px;padding:14px;border:0;border-radius:10
 
     <label for="name">Patient Name</label>
     <input id="name" type="text" placeholder="Enter patient name">
+    <label for="phone">WhatsApp Phone Number</label>
+<input
+  type="tel"
+  id="phone"
+  placeholder="Enter phone number with country code"
+  required
+>
 
     <button type="button" onclick="window.bookSlot()">Confirm Slot</button>
   </div>
@@ -159,13 +166,14 @@ function renderSlots() {
 
 async function bookSlot() {
   const name = document.getElementById("name").value.trim();
+  const phone = document.getElementById("phone").value.trim();
   const doctor = document.getElementById("doctor").value;
   const date = dateInput.value;
-
-  if (!name || !selectedSlot || !date) {
-    alert("Please enter your name, select a date and choose a time slot.");
-    return;
-  }
+const phone = document.getElementById("phone").value.trim();
+if (!name || !phone || !selectedSlot || !date) {
+  alert("Please enter your name and phone number, select a date and choose a time slot.");
+  return;
+}
 
   if (!currentUser) {
     alert("The booking service is connecting. Please try again in a moment.");
@@ -181,6 +189,7 @@ const waitingMinutes = (tokenNumber - 1) * 5;
   const booking = {
     token: token,
     patientName: name,
+    patientPhone:phone,
     doctor: doctor,
     date: date,
     time: selectedSlot,
