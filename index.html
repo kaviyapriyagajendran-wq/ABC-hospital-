@@ -70,60 +70,156 @@ button.confirm{width:100%;margin-top:20px;padding:14px;border:0;border-radius:10
 </div>
 
 <script>
-const slots = ["09:00 AM","09:30 AM","10:00 AM","10:30 AM","11:00 AM","11:30 AM",
-               "02:00 PM","02:30 PM","03:00 PM","03:30 PM","04:00 PM","04:30 PM"];
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
+import {
+  getAuth,
+  signInAnonymously
+} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+import {
+  getDatabase,
+  ref,
+  push,
+  set
+} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyD9FwQgnxiKnV2WWAPiEkhHhUDjwG5yejo",
+  authDomain: "hospitalqueuesystem-2a2b6.firebaseapp.com",
+  databaseURL: "https://hospitalqueuesystem-2a2b6-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "hospitalqueuesystem-2a2b6",
+  storageBucket: "hospitalqueuesystem-2a2b6.firebasestorage.app",
+  messagingSenderId: "834228939550",
+  appId: "1:834228939550:web:b66811bfe5f2485da0370f",
+  measurementId: "G-BJW8PZX65D"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getDatabase(app);
+
+let currentUser = null;
+
+const slots = [
+  "09:00 AM", "09:30 AM", "10:00 AM", "10:30 AM",
+  "11:00 AM", "11:30 AM", "02:00 PM", "02:30 PM",
+  "03:00 PM", "03:30 PM", "04:00 PM", "04:30 PM"
+];
+
 let selectedSlot = "";
 
 const dateInput = document.getElementById("date");
-dateInput.value = new Date().toISOString().split("T")[0];
+dateInput.value = new Date().toLocaleDateString("en-CA");
 renderSlots();
 
 dateInput.addEventListener("change", renderSlots);
 document.getElementById("doctor").addEventListener("change", renderSlots);
 
-function renderSlots(){
+signInAnonymously(auth)
+  .then((result) => {
+    currentUser = result.user;
+    console.log("Firebase connected. Anonymous user signed in.");
+  })
+  .catch((error) => {
+    console.error("Firebase authentication failed:", error);
+    alert("Could not connect to the booking service. Please try again.");
+  });
+
+function renderSlots() {
   const box = document.getElementById("slots");
   box.innerHTML = "";
   selectedSlot = "";
+
   slots.forEach((time, i) => {
     const b = document.createElement("button");
     b.className = "slot";
     b.textContent = time;
-    // Demo: a couple of slots appear already booked
-    if ((i === 2 || i === 7) && dateInput.value === new Date().toISOString().split("T")[0]) {
+
+    // Temporary demo: two slots appear booked today.
+    if (
+      (i === 2 || i === 7) &&
+      dateInput.value === new Date().toLocaleDateString("en-CA")
+    ) {
       b.className += " booked";
       b.disabled = true;
       b.title = "Already booked";
     } else {
       b.onclick = () => {
-        document.querySelectorAll(".slot").forEach(x => x.classList.remove("selected"));
+        document.querySelectorAll(".slot").forEach(
+          x => x.classList.remove("selected")
+        );
         b.classList.add("selected");
         selectedSlot = time;
       };
     }
+
     box.appendChild(b);
   });
 }
 
-function bookSlot(){
+async function bookSlot() {
   const name = document.getElementById("name").value.trim();
   const doctor = document.getElementById("doctor").value;
   const date = dateInput.value;
 
-  if(!name || !selectedSlot || !date){
+  if (!name || !selectedSlot || !date) {
     alert("Please enter your name, select a date and choose a time slot.");
     return;
   }
 
-  const token = "ABC-" + Math.floor(100 + Math.random() * 900);
-  document.getElementById("token").textContent = token;
-  document.getElementById("details").innerHTML =
-    "<b>" + name + "</b><br>" + doctor + "<br>" +
-    "Date: " + date + "<br>Time: " + selectedSlot;
+  if (!currentUser) {
+    alert("The booking service is connecting. Please try again in a moment.");
+    return;
+  }
 
-  document.getElementById("confirmation").style.display = "block";
-  document.getElementById("confirmation").scrollIntoView({behavior:"smooth"});
+  const token = "ABC-" + Math.floor(100 + Math.random() * 900);
+
+  const booking = {
+    token: token,
+    patientName: name,
+    doctor: doctor,
+    date: date,
+    time: selectedSlot,
+    status: "booked",
+    createdAt: new Date().toISOString()
+  };
+
+  try {
+    const bookingRef = push(
+      ref(db, "bookings/" + currentUser.uid)
+    );
+
+    await set(bookingRef, booking);
+
+    document.getElementById("token").textContent = token;
+
+    const details = document.getElementById("details");
+    details.replaceChildren();
+
+    const nameLine = document.createElement("b");
+    nameLine.textContent = name;
+    details.appendChild(nameLine);
+    details.appendChild(document.createElement("br"));
+    details.appendChild(document.createTextNode(doctor));
+    details.appendChild(document.createElement("br"));
+    details.appendChild(document.createTextNode("Date: " + date));
+    details.appendChild(document.createElement("br"));
+    details.appendChild(document.createTextNode("Time: " + selectedSlot));
+
+    document.getElementById("confirmation").style.display = "block";
+    document.getElementById("confirmation").scrollIntoView({
+      behavior: "smooth"
+    });
+
+    console.log("Booking saved to Firebase:", bookingRef.key);
+  } catch (error) {
+    console.error("Booking save failed:", error);
+    alert("Booking could not be saved. Please check the Firebase connection.");
+  }
 }
+
+window.bookSlot = bookSlot;
 </script>
+
 </body>
 </html>
