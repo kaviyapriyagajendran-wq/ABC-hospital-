@@ -1,1 +1,135 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ABC Hospital - Receptionist</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f1f5f9;
+      margin: 0;
+      color: #1e293b;
+    }
+    header {
+      background: #0f3d66;
+      color: white;
+      padding: 22px;
+      text-align: center;
+    }
+    main {
+      max-width: 800px;
+      margin: 25px auto;
+      padding: 16px;
+    }
+    .card {
+      background: white;
+      padding: 22px;
+      margin-bottom: 18px;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px #0001;
+    }
+    label {
+      display: block;
+      margin-top: 14px;
+      font-weight: bold;
+    }
+    input, select, button {
+      box-sizing: border-box;
+      width: 100%;
+      padding: 12px;
+      margin-top: 7px;
+      border-radius: 7px;
+      font-size: 16px;
+    }
+    input, select {
+      border: 1px solid #cbd5e1;
+    }
+    button {
+      border: 0;
+      background: #1769aa;
+      color: white;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    #message {
+      overflow-wrap: anywhere;
+      line-height: 1.5;
+    }
+    .note {
+      color: #475569;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>ABC Hospital</h1>
+    <p>Receptionist Dashboard</p>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>Live Queue Status</h2>
+      <p>Current token: <strong id="currentToken">--</strong></p>
+      <p>People waiting: <strong id="peopleWaiting">--</strong></p>
+      <p>Average service time: <strong id="averageTime">--</strong> minutes</p>
+      <p id="message">This page is a dashboard preview.</p>
+    </section>
+
+    <section class="card">
+      <h2>Queue Update Preview</h2>
+      <p class="note">
+        This form is a visual preview only. It does not update Firebase yet.
+        We will connect it securely in the next step.
+      </p>
+
+      <label for="token">Current token being served</label>
+      <input id="token" type="number" min="0" placeholder="Enter token number">
+
+      <label for="waiting">Number of people waiting</label>
+      <input id="waiting" type="number" min="0" placeholder="Enter people waiting">
+
+      <label for="average">Average service time (minutes)</label>
+      <input id="average" type="number" min="1" value="5">
+
+      <button id="previewButton" type="button">Preview Queue Update</button>
+      <p id="previewResult" aria-live="polite"></p>
+    </section>
+  </main>
+
+  <script>
+    document.getElementById("previewButton").addEventListener("click", () => {
+      const token = document.getElementById("token").value;
+      const waiting = document.getElementById("waiting").value;
+      const average = document.getElementById("average").value;
+      const result = document.getElementById("previewResult");
+
+      if (
+        token === "" || waiting === "" || average === "" ||
+        !Number.isInteger(Number(token)) ||
+        !Number.isInteger(Number(waiting)) ||
+        Number(token) < 0 ||
+        Number(waiting) < 0 ||
+        Number(average) <= 0
+      ) {
+        result.textContent = "Please enter valid queue values.";
+        return;
+      }
+
+      result.textContent =
+        "Preview only — Current token: " + token +
+        ", people waiting: " + waiting +
+        ", average service time: " + average +
+        " minutes. Firebase has not been changed.";
+    });
+  </script>
+</body>
+</html>
+
