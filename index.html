@@ -35,7 +35,7 @@ button.confirm{width:100%;margin-top:20px;padding:14px;border:0;border-radius:10
   
   <div class="card">
     <h2>Live Queue Status</h2>
-    <p>Current token: <strong id="currentToken">--</strong></p>
+    <p>Current Slot No.: <strong id="currentToken">--</strong></p>
     <p>People waiting: <strong id="peopleWaiting">--</strong></p>
     <p>Average service time: <strong id="averageService">--</strong> minutes</p>
     <p class="small" id="queueConnection">Connecting to live queue...</p>
@@ -72,7 +72,7 @@ button.confirm{width:100%;margin-top:20px;padding:14px;border:0;border-radius:10
 
   <div class="card confirmation" id="confirmation">
     <h2>Appointment Confirmed ✅</h2>
-    <p>Your token / slot number is</p>
+   <p>Your Slot No. is</p>
     <div class="number" id="token"></div>
     <p id="details"></p>
     <p class="small">Please arrive 10 minutes before your appointment.</p>
@@ -270,7 +270,7 @@ createdAt: new Date().toISOString()
     details.appendChild(document.createTextNode("Time: " + selectedSlot));
     const message =
   "Hello " + name + "! Your appointment is booked.\n\n" +
-  "Token number: " + token + "\n" +
+  "Slot No.: " + token + "\n" +
   "Doctor: " + doctor + "\n" +
   "Date: " + date + "\n" +
   "Time: " + selectedSlot + "\n" +
