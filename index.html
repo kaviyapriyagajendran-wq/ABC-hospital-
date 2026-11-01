@@ -253,6 +253,12 @@ createdAt: new Date().toISOString()
     );
 
     await set(bookingRef, booking);
+    await set(ref(db, "queueStatus/currentToken"), Number(token));
+
+await set(
+  ref(db, "queueStatus/peopleWaiting"),
+  Number(queueStatus.peopleWaiting || 0) + 1
+);
 
     document.getElementById("token").textContent = token;
 
