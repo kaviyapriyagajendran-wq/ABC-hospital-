@@ -17,6 +17,19 @@ select,input{width:100%;padding:12px;border:1px solid #cbd8df;border-radius:9px;
 .slot{padding:12px;border:1px solid #087f8c;background:white;color:#087f8c;border-radius:9px;cursor:pointer}
 .slot:hover,.slot.selected{background:#087f8c;color:white}
 .slot.booked{background:#ddd;color:#888;border-color:#ddd;cursor:not-allowed}
+  .slot.unavailable {
+  background: #e0e0e0;
+  color: #999;
+  border-color: #ccc;
+  cursor: not-allowed;
+  text-decoration: line-through;
+  opacity: 0.75;
+}
+
+.slot.unavailable:hover {
+  background: #e0e0e0;
+  color: #999;
+}
 button.confirm{width:100%;margin-top:20px;padding:14px;border:0;border-radius:10px;background:#087f8c;color:white;font-size:17px;font-weight:bold;cursor:pointer}
 .confirmation{display:none;text-align:center}
 .confirmation .number{font-size:42px;font-weight:bold;color:#087f8c}
@@ -164,7 +177,19 @@ const slots = [
 let selectedSlot = "";
 
 const dateInput = document.getElementById("date");
-dateInput.value = new Date().toLocaleDateString("en-CA");
+
+function getLocalDate() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+dateInput.min = getLocalDate();
+dateInput.value = getLocalDate();
+
 renderSlots();
 
 dateInput.addEventListener("change", renderSlots);
@@ -185,24 +210,50 @@ function renderSlots() {
   box.innerHTML = "";
   selectedSlot = "";
 
+  const today = getLocalDate();
+  const selectedDate = dateInput.value;
+
+  const now = new Date();
+  const currentMinutes =
+    now.getHours() * 60 + now.getMinutes();
+
   slots.forEach((time, i) => {
     const b = document.createElement("button");
+    b.type = "button";
     b.className = "slot";
     b.textContent = time;
 
-    // Temporary demo: two slots appear booked today.
-    if (
+    // Convert appointment time into minutes
+    const parts = time.match(/(\d+):(\d+)\s(AM|PM)/);
+    let hours = Number(parts[1]);
+    const minutes = Number(parts[2]);
+    const period = parts[3];
+
+    if (period === "PM" && hours !== 12) hours += 12;
+    if (period === "AM" && hours === 12) hours = 0;
+
+    const slotMinutes = hours * 60 + minutes;
+
+    // Check whether the appointment time has passed
+    const isPast =
+      selectedDate === today &&
+      slotMinutes <= currentMinutes;
+
+    // Existing demo booked slots
+    const isBooked =
       (i === 2 || i === 7) &&
-      dateInput.value === new Date().toLocaleDateString("en-CA")
-    ) {
-      b.className += " booked";
+      selectedDate === today;
+
+    if (isPast || isBooked) {
+      b.classList.add("unavailable");
       b.disabled = true;
-      b.title = "Already booked";
+      b.title = isPast ? "Appointment time has passed" : "Already booked";
     } else {
       b.onclick = () => {
         document.querySelectorAll(".slot").forEach(
           x => x.classList.remove("selected")
         );
+
         b.classList.add("selected");
         selectedSlot = time;
       };
@@ -211,7 +262,6 @@ function renderSlots() {
     box.appendChild(b);
   });
 }
-
 async function bookSlot() {
   const name = document.getElementById("name").value.trim();
   const phone = document.getElementById("phone").value.trim();
