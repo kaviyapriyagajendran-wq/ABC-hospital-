@@ -2,137 +2,319 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ABC Hospital - Receptionist</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f1f5f9;
-      margin: 0;
-      color: #1e293b;
-    }
-    header {
-      background: #0f3d66;
-      color: white;
-      padding: 22px;
-      text-align: center;
-    }
-    main {
-      max-width: 800px;
-      margin: 25px auto;
-      padding: 16px;
-    }
-    .card {
-      background: white;
-      padding: 22px;
-      margin-bottom: 18px;
-      border-radius: 12px;
-      box-shadow: 0 2px 10px #0001;
-    }
-    label {
-      display: block;
-      margin-top: 14px;
-      font-weight: bold;
-    }
-    input, select, button {
-      box-sizing: border-box;
-      width: 100%;
-      padding: 12px;
-      margin-top: 7px;
-      border-radius: 7px;
-      font-size: 16px;
-    }
-    input, select {
-      border: 1px solid #cbd5e1;
-    }
-    button {
-      border: 0;
-      background: #1769aa;
-      color: white;
-      cursor: pointer;
-      font-weight: bold;
-    }
-    button:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-    #message {
-      overflow-wrap: anywhere;
-      line-height: 1.5;
-    }
-    .note {
-      color: #475569;
-      font-size: 14px;
-      line-height: 1.5;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hospital - Receptionist Dashboard</title>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #f1f5f9;
+  margin: 0;
+  color: #1e293b;
+}
+header {
+  background: #0f3d66;
+  color: white;
+  padding: 20px;
+  text-align: center;
+}
+main {
+  max-width: 900px;
+  margin: 25px auto;
+  padding: 16px;
+}
+.card {
+  background: white;
+  padding: 20px;
+  margin-bottom: 18px;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px #0001;
+}
+.stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+.stat {
+  background: #eaf2fa;
+  padding: 18px;
+  border-radius: 10px;
+  text-align: center;
+}
+.stat h2 {
+  font-size: 30px;
+  margin: 5px;
+}
+.patient {
+  border: 1px solid #cbd5e1;
+  padding: 15px;
+  border-radius: 10px;
+  margin-top: 12px;
+}
+button {
+  padding: 10px;
+  margin: 5px 4px 0 0;
+  border: 0;
+  border-radius: 6px;
+  background: #1769aa;
+  color: white;
+  cursor: pointer;
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.status {
+  font-weight: bold;
+  color: #1769aa;
+}
+#message {
+  overflow-wrap: anywhere;
+}
+</style>
 </head>
+
 <body>
-  <header>
-    <h1>ABC Hospital</h1>
-    <p>Receptionist Dashboard</p>
-  </header>
 
-  <main>
-    <section class="card">
-      <h2>Live Queue Status</h2>
-      <p>Current token: <strong id="currentToken">--</strong></p>
-      <p>People waiting: <strong id="peopleWaiting">--</strong></p>
-      <p>Average service time: <strong id="averageTime">--</strong> minutes</p>
-      <p id="message">This page is a dashboard preview.</p>
-    </section>
+<header>
+<h1>Hospital</h1>
+<p>Receptionist Dashboard</p>
+</header>
 
-    <section class="card">
-      <h2>Queue Update Preview</h2>
-      <p class="note">
-        This form is a visual preview only. It does not update Firebase yet.
-        We will connect it securely in the next step.
-      </p>
+<main>
 
-      <label for="token">Current token being served</label>
-      <input id="token" type="number" min="0" placeholder="Enter token number">
+<section class="card">
+<h2>Live Queue Status</h2>
 
-      <label for="totalPatients">Total booked patients</label>
-      <input id="totalPatients" type="number" min="0" placeholder="Enter total patients">   
-      <label for="average">Average service time (minutes)</label>
-      <input id="average" type="number" min="1" value="5">
+<div class="stats">
+  <div class="stat">
+    <h2 id="currentToken">--</h2>
+    Current Token
+  </div>
 
-      <button id="previewButton" type="button">Preview Queue Update</button>
-      <p id="previewResult" aria-live="polite"></p>
-    </section>
-  </main>
+  <div class="stat">
+    <h2 id="peopleWaiting">--</h2>
+    People Waiting
+  </div>
+</div>
 
-  <script>
-document.getElementById("previewButton").addEventListener("click", () => {
+<p id="message">Connecting to Firebase...</p>
+</section>
 
-  const token = Number(document.getElementById("token").value);
-  const total = Number(document.getElementById("totalPatients").value);
-  const average = Number(document.getElementById("average").value);
+<section class="card">
+<h2>Patient Bookings</h2>
+<div id="patientList">Loading bookings...</div>
+</section>
 
-  const result = document.getElementById("previewResult");
+</main>
 
-  if (
-    document.getElementById("token").value === "" ||
-    document.getElementById("totalPatients").value === "" ||
-    !Number.isInteger(token) ||
-    !Number.isInteger(total) ||
-    token < 0 || total < 0 ||
-    average <= 0 || !Number.isFinite(average)
-  ) {
-    result.textContent = "Please enter valid values.";
+<script type="module">
+
+import { initializeApp }
+from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
+
+import {
+  getAuth,
+  signInAnonymously
+} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+
+import {
+  getDatabase,
+  ref,
+  onValue,
+  update
+} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyD9FwQgnxiKnV2WWAPiEkhHhUDjwG5yejo",
+  authDomain: "hospitalqueuesystem-2a2b6.firebaseapp.com",
+  databaseURL: "https://hospitalqueuesystem-2a2b6-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "hospitalqueuesystem-2a2b6",
+  storageBucket: "hospitalqueuesystem-2a2b6.firebasestorage.app",
+  messagingSenderId: "834228939550",
+  appId: "1:834228939550:web:b66811bfe5f2485da0370f",
+  measurementId: "G-BJW8PZX65D"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getDatabase(app);
+
+const patientList = document.getElementById("patientList");
+const message = document.getElementById("message");
+
+let allBookings = [];
+
+async function startDashboard() {
+  try {
+    await signInAnonymously(auth);
+
+    message.textContent = "Connected to Firebase!";
+
+    // Listen to queue status
+    onValue(ref(db, "queueStatus"), snapshot => {
+      const queue = snapshot.val() || {};
+
+      document.getElementById("currentToken").textContent =
+        queue.currentToken ?? "--";
+    });
+
+    // Listen to all patient bookings
+    onValue(ref(db, "bookings"), snapshot => {
+
+      const data = snapshot.val() || {};
+      allBookings = [];
+
+      Object.entries(data).forEach(([uid, userBookings]) => {
+        Object.entries(userBookings || {}).forEach(
+          ([bookingId, booking]) => {
+
+            allBookings.push({
+              uid,
+              bookingId,
+              ...booking
+            });
+
+          }
+        );
+      });
+
+      allBookings.sort((a, b) =>
+        String(a.token || "").localeCompare(
+          String(b.token || ""),
+          undefined,
+          { numeric: true }
+        )
+      );
+
+      renderPatients();
+
+    }, error => {
+      message.textContent = "Database error: " + error.message;
+    });
+
+  } catch (error) {
+    message.textContent = "Connection failed: " + error.message;
+  }
+}
+
+function renderPatients() {
+
+  patientList.replaceChildren();
+
+  if (allBookings.length === 0) {
+    patientList.textContent = "No patient bookings found.";
+    updateWaiting();
     return;
   }
 
-  const waiting = Math.max(0, total - token);
+  allBookings.forEach(patient => {
 
-  document.getElementById("currentToken").textContent = token;
+    const card = document.createElement("div");
+    card.className = "patient";
+
+    const name = document.createElement("h3");
+    name.textContent = patient.patientName || "Unknown patient";
+
+    const details = document.createElement("p");
+    details.textContent =
+      "Token: " + (patient.token || "--") +
+      " | Doctor: " + (patient.doctor || "--") +
+      " | Date: " + (patient.date || "--") +
+      " | Time: " + (patient.time || "--");
+
+    const status = document.createElement("p");
+    status.className = "status";
+    status.textContent = "Status: " + (patient.status || "booked");
+
+    card.append(name, details, status);
+
+    addAction(card, "Mark Arrived", patient, "arrived",
+      patient.status === "booked");
+
+    addAction(card, "Start Consultation", patient,
+      "in_consultation", patient.status === "arrived");
+
+    addAction(card, "Complete Consultation", patient,
+      "completed", patient.status === "in_consultation");
+
+    patientList.appendChild(card);
+
+  });
+
+  updateWaiting();
+}
+
+function addAction(card, label, patient, newStatus, enabled) {
+
+  const button = document.createElement("button");
+  button.textContent = label;
+  button.disabled = !enabled;
+
+  button.addEventListener("click", async () => {
+
+    button.disabled = true;
+
+    try {
+      const bookingRef = ref(
+        db,
+        `bookings/${patient.uid}/${patient.bookingId}`
+      );
+
+      const timestamp = Date.now();
+
+      const changes = {
+        status: newStatus
+      };
+
+      if (newStatus === "arrived") {
+        changes.arrivedAt = timestamp;
+      }
+
+      if (newStatus === "in_consultation") {
+        changes.consultationStartedAt = timestamp;
+
+        await update(ref(db, "queueStatus"), {
+          currentToken: patient.token
+        });
+      }
+
+      if (newStatus === "completed") {
+        changes.consultationCompletedAt = timestamp;
+      }
+
+      await update(bookingRef, changes);
+
+    } catch (error) {
+      alert("Update failed: " + error.message);
+      button.disabled = false;
+    }
+
+  });
+
+  card.appendChild(button);
+}
+
+function updateWaiting() {
+
+  const waiting = allBookings.filter(patient =>
+    ["booked", "arrived"].includes(patient.status || "booked")
+  ).length;
+
   document.getElementById("peopleWaiting").textContent = waiting;
-  document.getElementById("averageTime").textContent = average;
 
-  result.textContent =
-    "Queue updated! Current token: " + token +
-    ", People waiting: " + waiting;
-});
+  // Update Firebase queue status
+  update(ref(db, "queueStatus"), {
+    peopleWaiting: waiting
+  }).catch(error => {
+    message.textContent = "Queue update failed: " + error.message;
+  });
+}
+
+startDashboard();
+
 </script>
 
+</body>
+</html>
