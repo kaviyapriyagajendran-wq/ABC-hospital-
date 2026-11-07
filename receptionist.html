@@ -153,13 +153,6 @@ async function startDashboard() {
     message.textContent = "Connected to Firebase!";
 
     // Listen to queue status
-    onValue(ref(db, "queueStatus"), snapshot => {
-      const queue = snapshot.val() || {};
-
-      document.getElementById("currentToken").textContent =
-        queue.currentToken ?? "--";
-    });
-
     // Listen to all patient bookings
     onValue(ref(db, "bookings"), snapshot => {
 
@@ -296,21 +289,68 @@ function addAction(card, label, patient, newStatus, enabled) {
   card.appendChild(button);
 }
 
+
+function getTodayDate() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function getTokenNumber(token) {
+  const match = String(token || "").match(/\d+/);
+  return match ? Number(match[0]) : 0;
+}
+
+
 function updateWaiting() {
 
-  const waiting = allBookings.filter(patient =>
+  const today = getTodayDate();
+
+  const todayBookings = allBookings.filter(patient =>
+    patient.date === today
+  );
+
+  // Find the latest consultation started
+  const servedPatients = todayBookings
+    .filter(patient =>
+      patient.consultationStartedAt &&
+      ["in_consultation", "completed"].includes(patient.status)
+    )
+    .sort((a, b) =>
+      Number(a.consultationStartedAt) -
+      Number(b.consultationStartedAt)
+    );
+
+  const latestPatient = servedPatients.length
+    ? servedPatients[servedPatients.length - 1]
+    : null;
+
+  const currentToken = latestPatient
+    ? getTokenNumber(latestPatient.token)
+    : 0;
+
+  // Count patients still waiting
+  const waiting = todayBookings.filter(patient =>
     ["booked", "arrived"].includes(patient.status || "booked")
   ).length;
 
-  document.getElementById("peopleWaiting").textContent = waiting;
+  document.getElementById("currentToken").textContent =
+    currentToken;
 
-  // Update Firebase queue status
+  document.getElementById("peopleWaiting").textContent =
+    waiting;
+
   update(ref(db, "queueStatus"), {
+    currentToken: currentToken,
     peopleWaiting: waiting
   }).catch(error => {
     message.textContent = "Queue update failed: " + error.message;
   });
 }
+
 
 startDashboard();
 
