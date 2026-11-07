@@ -93,9 +93,8 @@
       <label for="token">Current token being served</label>
       <input id="token" type="number" min="0" placeholder="Enter token number">
 
-      <label for="waiting">Number of people waiting</label>
-      <input id="waiting" type="number" min="0" placeholder="Enter people waiting">
-
+      <label for="totalPatients">Total booked patients</label>
+      <input id="totalPatients" type="number" min="0" placeholder="Enter total patients">   
       <label for="average">Average service time (minutes)</label>
       <input id="average" type="number" min="1" value="5">
 
@@ -105,31 +104,35 @@
   </main>
 
   <script>
-    document.getElementById("previewButton").addEventListener("click", () => {
-      const token = document.getElementById("token").value;
-      const waiting = document.getElementById("waiting").value;
-      const average = document.getElementById("average").value;
-      const result = document.getElementById("previewResult");
+document.getElementById("previewButton").addEventListener("click", () => {
 
-      if (
-        token === "" || waiting === "" || average === "" ||
-        !Number.isInteger(Number(token)) ||
-        !Number.isInteger(Number(waiting)) ||
-        Number(token) < 0 ||
-        Number(waiting) < 0 ||
-        Number(average) <= 0
-      ) {
-        result.textContent = "Please enter valid queue values.";
-        return;
-      }
+  const token = Number(document.getElementById("token").value);
+  const total = Number(document.getElementById("totalPatients").value);
+  const average = Number(document.getElementById("average").value);
 
-      result.textContent =
-        "Preview only — Current token: " + token +
-        ", people waiting: " + waiting +
-        ", average service time: " + average +
-        " minutes. Firebase has not been changed.";
-    });
-  </script>
-</body>
-</html>
+  const result = document.getElementById("previewResult");
+
+  if (
+    document.getElementById("token").value === "" ||
+    document.getElementById("totalPatients").value === "" ||
+    !Number.isInteger(token) ||
+    !Number.isInteger(total) ||
+    token < 0 || total < 0 ||
+    average <= 0 || !Number.isFinite(average)
+  ) {
+    result.textContent = "Please enter valid values.";
+    return;
+  }
+
+  const waiting = Math.max(0, total - token);
+
+  document.getElementById("currentToken").textContent = token;
+  document.getElementById("peopleWaiting").textContent = waiting;
+  document.getElementById("averageTime").textContent = average;
+
+  result.textContent =
+    "Queue updated! Current token: " + token +
+    ", People waiting: " + waiting;
+});
+</script>
 
