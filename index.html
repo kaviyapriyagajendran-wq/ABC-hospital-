@@ -51,6 +51,8 @@ button.confirm{width:100%;margin-top:20px;padding:14px;border:0;border-radius:10
     <p>Current Slot No.: <strong id="currentToken">--</strong></p>
     <p>People waiting: <strong id="peopleWaiting">--</strong></p>
     <p>Average service time: <strong id="averageService">--</strong> minutes</p>
+    <p>Estimated waiting time:
+<strong id="estimatedWaiting">--</strong> minutes</p>
     <p class="small" id="queueConnection">Connecting to live queue...</p>
   </div>
 
@@ -134,37 +136,44 @@ let queueStatus = {
   averageServiceMinutes: 5
 };
 
-onValue(
-  ref(db, "queueStatus"),
-  (snapshot) => {
-    const data = snapshot.val();
 
-    if (!data) {
+function listenToQueue() {
+  onValue(
+    ref(db, "queueStatus"),
+    (snapshot) => {
+      const data = snapshot.val();
+
+      if (!data) {
+        document.getElementById("queueConnection").textContent =
+          "Queue data not available.";
+        return;
+      }
+
+      queueStatus = data;
+
+      const current = Number(data.currentToken || 0);
+      const waiting = Number(data.peopleWaiting || 0);
+      const average = Number(data.averageServiceMinutes || 5);
+
+      document.getElementById("currentToken").textContent = current;
+      document.getElementById("peopleWaiting").textContent = waiting;
+      document.getElementById("averageService").textContent = average;
+
+      document.getElementById("estimatedWaiting").textContent =
+        waiting * average;
+
       document.getElementById("queueConnection").textContent =
-        "Queue data not available.";
-      return;
+        "Live queue connected ✓";
+    },
+    (error) => {
+      console.error("Queue listener failed:", error);
+
+      document.getElementById("queueConnection").textContent =
+        "Unable to load queue status.";
     }
+  );
+}
 
-    queueStatus = data;
-
-    document.getElementById("currentToken").textContent =
-      data.currentToken ?? 0;
-
-    document.getElementById("peopleWaiting").textContent =
-      data.peopleWaiting ?? 0;
-
-    document.getElementById("averageService").textContent =
-      data.averageServiceMinutes ?? 5;
-
-    document.getElementById("queueConnection").textContent =
-      "Live queue connected ✓";
-  },
-  (error) => {
-    console.error("Queue listener failed:", error);
-    document.getElementById("queueConnection").textContent =
-      "Unable to load queue status.";
-  }
-);
 
 let currentUser = null;
 
@@ -198,7 +207,10 @@ document.getElementById("doctor").addEventListener("change", renderSlots);
 signInAnonymously(auth)
   .then((result) => {
     currentUser = result.user;
-    console.log("Firebase connected. Anonymous user signed in.");
+
+    console.log("Firebase connected.");
+
+    listenToQueue();
   })
   .catch((error) => {
     console.error("Firebase authentication failed:", error);
@@ -303,12 +315,6 @@ createdAt: new Date().toISOString()
     );
 
     await set(bookingRef, booking);
-    await set(ref(db, "queueStatus/currentToken"), Number(token));
-
-await set(
-  ref(db, "queueStatus/peopleWaiting"),
-  Number(queueStatus.peopleWaiting || 0) + 1
-);
 
     document.getElementById("token").textContent = token;
 
