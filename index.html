@@ -16,7 +16,7 @@ select,input{width:100%;padding:12px;border:1px solid #cbd8df;border-radius:9px;
 .slots{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px}
 .slot{padding:12px;border:1px solid #087f8c;background:white;color:#087f8c;border-radius:9px;cursor:pointer}
 .slot:hover,.slot.selected{background:#087f8c;color:white}
-.slot.booked{background:#ddd;color:#888;border-color:#ddd;cursor:not-allowed}
+.slot.booked{background:#e0e0e0;color:#666;border-color:#ccc;cursor:not-allowed;opacity:0.9;font-size:13px}
   .slot.unavailable {
   background: #e0e0e0;
   color: #999;
@@ -184,6 +184,7 @@ const slots = [
 ];
 
 let selectedSlot = "";
+let allBookings = {};
 
 const dateInput = document.getElementById("date");
 
@@ -211,6 +212,18 @@ signInAnonymously(auth)
     console.log("Firebase connected.");
 
     listenToQueue();
+
+    // Listen to every booking so slots booked by other patients appear unavailable.
+    onValue(
+      ref(db, "bookings"),
+      (snapshot) => {
+        allBookings = snapshot.val() || {};
+        renderSlots();
+      },
+      (error) => {
+        console.error("Booking listener failed:", error);
+      }
+    );
   })
   .catch((error) => {
     console.error("Firebase authentication failed:", error);
@@ -220,23 +233,45 @@ signInAnonymously(auth)
 function renderSlots() {
   const box = document.getElementById("slots");
   box.innerHTML = "";
+
+  const previouslySelected = selectedSlot;
   selectedSlot = "";
 
   const today = getLocalDate();
   const selectedDate = dateInput.value;
+  const selectedDoctor = document.getElementById("doctor").value;
 
   const now = new Date();
-  const currentMinutes =
-    now.getHours() * 60 + now.getMinutes();
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
-  slots.forEach((time, i) => {
+  // Build a list of slots already booked for this doctor and date.
+  const bookedTimes = new Set();
+
+  Object.values(allBookings || {}).forEach((patientBookings) => {
+    if (!patientBookings) return;
+
+    Object.values(patientBookings).forEach((booking) => {
+      if (!booking) return;
+
+      const status = String(booking.status || "booked").toLowerCase();
+
+      if (
+        booking.date === selectedDate &&
+        booking.doctor === selectedDoctor &&
+        status !== "cancelled"
+      ) {
+        bookedTimes.add(booking.time);
+      }
+    });
+  });
+
+  slots.forEach((time) => {
     const b = document.createElement("button");
     b.type = "button";
     b.className = "slot";
-    b.textContent = time;
 
-    // Convert appointment time into minutes
-    const parts = time.match(/(\d+):(\d+)\s(AM|PM)/);
+    // Convert appointment time into minutes.
+    const parts = time.match(/(\\d+):(\\d+)\\s(AM|PM)/);
     let hours = Number(parts[1]);
     const minutes = Number(parts[2]);
     const period = parts[3];
@@ -246,24 +281,32 @@ function renderSlots() {
 
     const slotMinutes = hours * 60 + minutes;
 
-    // Check whether the appointment time has passed
     const isPast =
       selectedDate === today &&
       slotMinutes <= currentMinutes;
 
-    // Existing demo booked slots
-    const isBooked =
-      (i === 2 || i === 7) &&
-      selectedDate === today;
+    const isBooked = bookedTimes.has(time);
 
-    if (isPast || isBooked) {
+    if (isBooked) {
+      b.textContent = time + " — This slot has been booked";
+      b.classList.add("booked");
+      b.disabled = true;
+      b.title = "This slot has been booked";
+    } else if (isPast) {
+      b.textContent = time + " — Time passed";
       b.classList.add("unavailable");
       b.disabled = true;
-      b.title = isPast ? "Appointment time has passed" : "Already booked";
+      b.title = "Appointment time has passed";
     } else {
+      b.textContent = time;
+      if (time === previouslySelected) {
+        b.classList.add("selected");
+        selectedSlot = time;
+      }
+
       b.onclick = () => {
         document.querySelectorAll(".slot").forEach(
-          x => x.classList.remove("selected")
+          (x) => x.classList.remove("selected")
         );
 
         b.classList.add("selected");
@@ -274,12 +317,15 @@ function renderSlots() {
     box.appendChild(b);
   });
 }
+
 async function bookSlot() {
   const name = document.getElementById("name").value.trim();
   const phone = document.getElementById("phone").value.trim();
   const doctor = document.getElementById("doctor").value;
   const date = dateInput.value;
-if (!name || !phone || !selectedSlot || !date) {
+  const slotToBook = selectedSlot;
+
+if (!name || !phone || !slotToBook || !date) {
   alert("Please enter your name and phone number, select a date and choose a time slot.");
   return;
 }
@@ -289,9 +335,37 @@ if (!name || !phone || !selectedSlot || !date) {
     return;
   }
 
-const bookingsRef = ref(db, "bookings/" + currentUser.uid);
-const snapshot = await get(bookingsRef);
-const previousBookings = snapshot.val() || {};
+const allBookingsSnapshot = await get(ref(db, "bookings"));
+const latestBookings = allBookingsSnapshot.val() || {};
+
+let slotAlreadyBooked = false;
+
+Object.values(latestBookings).forEach((patientBookings) => {
+  if (!patientBookings) return;
+
+  Object.values(patientBookings).forEach((booking) => {
+    if (
+      booking &&
+      booking.date === date &&
+      booking.doctor === doctor &&
+      booking.time === slotToBook &&
+      String(booking.status || "booked").toLowerCase() !== "cancelled"
+    ) {
+      slotAlreadyBooked = true;
+    }
+  });
+});
+
+if (slotAlreadyBooked) {
+  selectedSlot = "";
+  renderSlots();
+  alert("Sorry, this slot has just been booked. Please choose another time.");
+  return;
+}
+
+const ownBookingsRef = ref(db, "bookings/" + currentUser.uid);
+const ownSnapshot = await get(ownBookingsRef);
+const previousBookings = ownSnapshot.val() || {};
 const tokenNumber = Object.keys(previousBookings).length + 1;
 const token = String(tokenNumber);
 const waitingMinutes =
@@ -303,7 +377,7 @@ const waitingMinutes =
     patientPhone:phone,
     doctor: doctor,
     date: date,
-    time: selectedSlot,
+    time: slotToBook,
    status: "booked",
 waitingMinutes: waitingMinutes,
 createdAt: new Date().toISOString()
@@ -329,13 +403,13 @@ createdAt: new Date().toISOString()
     details.appendChild(document.createElement("br"));
     details.appendChild(document.createTextNode("Date: " + date));
     details.appendChild(document.createElement("br"));
-    details.appendChild(document.createTextNode("Time: " + selectedSlot));
+    details.appendChild(document.createTextNode("Time: " + slotToBook));
     const message =
   "Hello " + name + "! Your appointment is booked.\n\n" +
   "Slot No.: " + token + "\n" +
   "Doctor: " + doctor + "\n" +
   "Date: " + date + "\n" +
-  "Time: " + selectedSlot + "\n" +
+  "Time: " + slotToBook + "\n" +
   "Estimated waiting time: " + waitingMinutes + " minutes\n\n" +
   "Please be available when your turn approaches.";
 
